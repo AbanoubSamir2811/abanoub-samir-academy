@@ -261,7 +261,7 @@ function CourseBenefits() {
     "مشاريع عملية تطبيقية",
     "شرح مبسّط واحترافي",
     "متابعة مستمرة ودعم كامل",
-    "شهادات HTML, CSS, JavaScript",
+    "تعلم HTML, CSS, JavaScript",
     "مناسب لأولى وثانية ثانوي - بكالوريا",
   ];
   return (
