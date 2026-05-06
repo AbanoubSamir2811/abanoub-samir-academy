@@ -62,9 +62,9 @@
 
 ## التفاصيل التقنية
 
-**التقنيات**: TanStack Start + React + Tailwind v4 + Framer Motion + react-hook-form + zod + Lovable Cloud (Supabase).
+**التقنيات**: TanStack Start + React + Tailwind v4 + Framer Motion + react-hook-form + zod + Supabase.
 
-**قاعدة البيانات** (Lovable Cloud):
+**قاعدة البيانات** (Supabase):
 - جدول `bookings`: id, full_name, phone, academic_year (enum), study_type (enum), notes, created_at
 - جدول `user_roles` + enum `app_role` + دالة `has_role` (نمط الأدوار الآمن)
 - RLS:

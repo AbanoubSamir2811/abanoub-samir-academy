@@ -21,6 +21,8 @@ export type Database = {
           full_name: string
           id: string
           notes: string | null
+          parent_name: string | null
+          parent_phone: string | null
           phone: string
           study_type: Database["public"]["Enums"]["study_type"]
         }
@@ -30,6 +32,8 @@ export type Database = {
           full_name: string
           id?: string
           notes?: string | null
+          parent_name?: string | null
+          parent_phone?: string | null
           phone: string
           study_type: Database["public"]["Enums"]["study_type"]
         }
@@ -39,6 +43,8 @@ export type Database = {
           full_name?: string
           id?: string
           notes?: string | null
+          parent_name?: string | null
+          parent_phone?: string | null
           phone?: string
           study_type?: Database["public"]["Enums"]["study_type"]
         }

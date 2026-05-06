@@ -46,6 +46,8 @@ type Booking = {
   id: string;
   full_name: string;
   phone: string;
+  parent_name: string | null;
+  parent_phone: string | null;
   academic_year: "first_secondary" | "second_secondary";
   study_type: "languages" | "general";
   notes: string | null;
@@ -70,52 +72,34 @@ function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Try sign in. If admin doesn't exist yet, create him on first login attempt
-    // with the provided credentials, then assign admin role.
-    let { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error && error.message.toLowerCase().includes("invalid")) {
-      // Attempt to create the admin account (signup is disabled globally except via signUp call which still works server-side here)
-      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: window.location.origin },
-      });
-      if (!signUpErr && signUpData.user) {
-        // Assign admin role
-        await supabase.from("user_roles").insert({
-          user_id: signUpData.user.id,
-          role: "admin",
-        });
-        const retry = await supabase.auth.signInWithPassword({ email, password });
-        data = retry.data;
-        error = retry.error;
-      } else if (signUpErr) {
-        error = signUpErr;
-      }
-    }
+    // Login only: do not auto-create account from admin login form.
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     setLoading(false);
     if (error) {
-      toast.error("فشل تسجيل الدخول", { description: error.message });
+      const isInvalidCredentials =
+        error.message.toLowerCase().includes("invalid login credentials") ||
+        error.message.toLowerCase().includes("invalid");
+      toast.error("فشل تسجيل الدخول", {
+        description: isInvalidCredentials ? "البريد الإلكتروني أو كلمة المرور غير صحيحة" : error.message,
+      });
       return;
     }
     if (data?.user) {
       // Check admin role
-      const { data: roles } = await supabase
+      const { data: roles, error: rolesError } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", data.user.id);
+      if (rolesError) {
+        toast.error("فشل التحقق من الصلاحيات", { description: rolesError.message });
+        return;
+      }
       const isAdmin = roles?.some((r) => r.role === "admin");
       if (!isAdmin) {
-        // Auto-assign for the configured admin email
-        if (email.toLowerCase() === "abanoubsamir2811@gmail.com") {
-          await supabase.from("user_roles").insert({ user_id: data.user.id, role: "admin" });
-        } else {
-          await supabase.auth.signOut();
-          toast.error("لا تملك صلاحيات الدخول للوحة التحكم");
-          return;
-        }
+        await supabase.auth.signOut();
+        toast.error("لا تملك صلاحيات الدخول للوحة التحكم");
+        return;
       }
       onSuccess();
     }
@@ -219,6 +203,12 @@ function BookingCard({ b, onDelete }: { b: Booking; onDelete: (id: string) => vo
           <Phone className="w-4 h-4 text-primary" /> <span dir="ltr">{b.phone}</span>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
+          <Users className="w-4 h-4 text-primary" /> {b.parent_name ?? "—"}
+        </div>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Phone className="w-4 h-4 text-primary" /> <span dir="ltr">{b.parent_phone ?? "—"}</span>
+        </div>
+        <div className="flex items-center gap-2 text-muted-foreground">
           <Calendar className="w-4 h-4 text-primary" /> {yearLabels[b.academic_year]}
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
@@ -282,6 +272,8 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       return (
         b.full_name.toLowerCase().includes(q) ||
         b.phone.toLowerCase().includes(q) ||
+        (b.parent_name ?? "").toLowerCase().includes(q) ||
+        (b.parent_phone ?? "").toLowerCase().includes(q) ||
         (b.notes ?? "").toLowerCase().includes(q)
       );
     });
@@ -299,6 +291,11 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
     { key: "gen-1", title: "عام - أولى ثانوي", type: "general", year: "first_secondary" },
     { key: "gen-2", title: "عام - ثانية ثانوي", type: "general", year: "second_secondary" },
   ];
+  const visibleGroups = groups.filter((g) => {
+    if (yearFilter !== "all" && g.year !== yearFilter) return false;
+    if (typeFilter !== "all" && g.type !== typeFilter) return false;
+    return true;
+  });
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
@@ -347,7 +344,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
           <div className="relative md:col-span-1">
             <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="ابحث بالاسم أو الهاتف..."
+              placeholder="ابحث بالاسم أو الهاتف (الطالب/ولي الأمر)..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pr-10 bg-input/50"
@@ -381,7 +378,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
           </div>
         ) : (
           <div className="space-y-10">
-            {groups.map((g) => {
+            {visibleGroups.map((g) => {
               const items = filtered.filter(
                 (b) => b.study_type === g.type && b.academic_year === g.year,
               );
@@ -425,10 +422,15 @@ function AdminPage() {
       setAuthed(false);
       return;
     }
-    const { data: roles } = await supabase
+    const { data: roles, error: rolesError } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", data.session.user.id);
+    if (rolesError) {
+      toast.error("فشل التحقق من الصلاحيات", { description: rolesError.message });
+      setAuthed(false);
+      return;
+    }
     const isAdmin = roles?.some((r) => r.role === "admin");
     if (!isAdmin) {
       await supabase.auth.signOut();

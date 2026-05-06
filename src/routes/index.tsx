@@ -192,12 +192,6 @@ function Hero() {
 
 // ============== About ==============
 function About() {
-  const stats = [
-    { value: "+5", label: "سنوات خبرة" },
-    { value: "+200", label: "طالب" },
-    { value: "+50", label: "مشروع" },
-    { value: "100%", label: "متابعة" },
-  ];
   return (
     <section id="about" className="py-20 px-4">
       <div className="container mx-auto max-w-5xl">
@@ -214,21 +208,6 @@ function About() {
             هدفي أن أساعدك على بناء أساس قوي في البرمجة من الصفر، وفتح أبواب عالم التكنولوجيا
             والذكاء الاصطناعي أمامك بثقة.
           </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {stats.map((s, i) => (
-              <motion.div
-                key={s.label}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="p-4 rounded-2xl bg-primary/5 border border-primary/20"
-              >
-                <div className="text-3xl md:text-4xl font-black gradient-text">{s.value}</div>
-                <div className="text-sm text-muted-foreground mt-1">{s.label}</div>
-              </motion.div>
-            ))}
-          </div>
         </motion.div>
       </div>
     </section>
@@ -326,6 +305,15 @@ const bookingSchema = z.object({
     .string()
     .trim()
     .regex(/^[0-9+\s-]{8,20}$/, "رقم هاتف غير صالح"),
+  parent_name: z
+    .string()
+    .trim()
+    .min(3, "اسم ولي الأمر يجب أن يكون 3 أحرف على الأقل")
+    .max(100, "اسم ولي الأمر طويل جدًا"),
+  parent_phone: z
+    .string()
+    .trim()
+    .regex(/^[0-9+\s-]{8,20}$/, "رقم هاتف ولي الأمر غير صالح"),
   academic_year: z.enum(["first_secondary", "second_secondary"], {
     required_error: "اختر الصف الدراسي",
   }),
@@ -341,13 +329,15 @@ function BookingForm() {
   const [done, setDone] = useState(false);
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
-    defaultValues: { full_name: "", phone: "", notes: "" },
+    defaultValues: { full_name: "", phone: "", parent_name: "", parent_phone: "", notes: "" },
   });
 
   const onSubmit = async (values: BookingFormValues) => {
     const { error } = await supabase.from("bookings").insert({
       full_name: values.full_name,
       phone: values.phone,
+      parent_name: values.parent_name,
+      parent_phone: values.parent_phone,
       academic_year: values.academic_year,
       study_type: values.study_type,
       notes: values.notes || null,
@@ -419,6 +409,43 @@ function BookingForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>رقم الهاتف *</FormLabel>
+                      <FormControl>
+                        <Input
+                          dir="ltr"
+                          placeholder="01xxxxxxxxx"
+                          className="bg-input/50 text-right"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="parent_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>اسم ولي الأمر *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="ادخل اسم ولي الأمر"
+                          className="bg-input/50"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="parent_phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>رقم تليفون ولي الأمر *</FormLabel>
                       <FormControl>
                         <Input
                           dir="ltr"
