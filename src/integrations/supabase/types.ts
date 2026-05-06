@@ -14,16 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          academic_year: Database["public"]["Enums"]["academic_year"]
+          created_at: string
+          full_name: string
+          id: string
+          notes: string | null
+          phone: string
+          study_type: Database["public"]["Enums"]["study_type"]
+        }
+        Insert: {
+          academic_year: Database["public"]["Enums"]["academic_year"]
+          created_at?: string
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone: string
+          study_type: Database["public"]["Enums"]["study_type"]
+        }
+        Update: {
+          academic_year?: Database["public"]["Enums"]["academic_year"]
+          created_at?: string
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string
+          study_type?: Database["public"]["Enums"]["study_type"]
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      academic_year: "first_secondary" | "second_secondary"
+      app_role: "admin" | "user"
+      study_type: "languages" | "general"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +208,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      academic_year: ["first_secondary", "second_secondary"],
+      app_role: ["admin", "user"],
+      study_type: ["languages", "general"],
+    },
   },
 } as const
